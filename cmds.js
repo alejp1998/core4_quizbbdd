@@ -151,8 +151,26 @@ exports.editCmd = (rl, id) => {
  * @param id Clave del quiz a probar.
  */
 exports.testCmd = (rl, id) => {
-    log('Probar el quiz indicado.', 'red');
-    rl.prompt();
+  if (typeof id === "undefined") {
+      errorlog(`Falta el parámetro id.`);
+      rl.prompt();
+  } else {
+    try{
+      const testQuestion = model.getByIndex(id);
+      rl.question(colorize(testQuestion.question + ': ', 'red'), answer => {
+        if(answer == testQuestion.answer){
+          biglog('Correcta','green');
+          rl.prompt();
+        }else{
+          biglog('Incorrecta','red');
+          rl.prompt();
+        }
+      });
+    }catch(error){
+      errorlog(error.message);
+      rl.prompt();
+    }
+  }
 };
 
 
@@ -164,10 +182,32 @@ exports.testCmd = (rl, id) => {
  */
 exports.playCmd = rl => {
     log('Jugar.', 'red');
-    rl.prompt();
-};
-
-
+    let gameQuestions = model.getAll();
+    let score = 0;
+    let questionId = 0;
+    const newQuestion = () => {
+      questionId = Math.floor(Math.random()*(gameQuestions.length));
+      rl.question(colorize(gameQuestions[questionId].question + ': ', 'red'), answer => {
+        if(answer == gameQuestions[questionId].answer){
+          score++;
+          log('Correcta. Aciertos: ' + score);
+          gameQuestions.splice(questionId, 1);
+          if(gameQuestions.length < 1){
+            biglog('WINNER','magenta');
+            rl.prompt();
+          }else{
+            newQuestion();
+          }
+        }else{
+          log('Incorrecta.','magenta');
+          biglog('FIN','red');
+          log('Has conseguido: '+ score + ' puntos.','magenta');
+          rl.prompt();
+        }
+      });
+    }
+    newQuestion();
+}
 /**
  * Muestra los nombres de los autores de la práctica.
  *
@@ -175,8 +215,7 @@ exports.playCmd = rl => {
  */
 exports.creditsCmd = rl => {
     log('Autores de la práctica:');
-    log('Nombre 1', 'green');
-    log('Nombre 2', 'green');
+    log('Alejandro Jarabo Peñas', 'green');
     rl.prompt();
 };
 
@@ -189,4 +228,3 @@ exports.creditsCmd = rl => {
 exports.quitCmd = rl => {
     rl.close();
 };
-
