@@ -2,9 +2,23 @@
 
 const {log, biglog, errorlog, colorize} = require("./out");
 
-const model = require('./model');
+const {models} = require('./model');
 
-
+//Promesa que comprueba que el id introducido es valido
+const validateId = id => {
+  return new Promise((resolve,reject) => {
+    if (typeof id === "undefined"){
+      reject(new Error(`Falta el parámetro <id>.`));
+    } else {
+      id = parseInt(id);
+      if (Number.isNaN(id)){
+        reject(new Error(`El valor del parámetro <id> no es un número.`));
+      } else {
+        resolve(id);
+      }
+    }
+  });
+};
 /**
  * Muestra la ayuda.
  *
@@ -32,10 +46,18 @@ exports.helpCmd = rl => {
  * @param rl Objeto readline usado para implementar el CLI.
  */
 exports.listCmd = rl => {
-    model.getAll().forEach((quiz, id) => {
-        log(` [${colorize(id, 'magenta')}]:  ${quiz.question}`);
+    //Promesa que devuelve todos los quizzes existentes(array)
+    models.quiz.findAll()
+    .each(quiz => {
+        log(`[${colorize(quiz.id, 'blue')}]: ${quiz.question}`);
+    })
+    .catch(error => {
+      errorlog(error.message);
+    })
+    .then(()=>{
+      rl.prompt();
     });
-    rl.prompt();
+    //No sacamos el prompt hasta no terminar con las promesas
 };
 
 
@@ -46,17 +68,20 @@ exports.listCmd = rl => {
  * @param id Clave del quiz a mostrar.
  */
 exports.showCmd = (rl, id) => {
-    if (typeof id === "undefined") {
-        errorlog(`Falta el parámetro id.`);
-    } else {
-        try {
-            const quiz = model.getByIndex(id);
-            log(` [${colorize(id, 'magenta')}]:  ${quiz.question} ${colorize('=>', 'magenta')} ${quiz.answer}`);
-        } catch(error) {
-            errorlog(error.message);
-        }
-    }
-    rl.prompt();
+    validateId(id)
+    .then(id => models.quiz.findByPk(id))
+    .then(quiz => {
+      if(!quiz){
+        throw new Error(`No existe un quiz asociado al id=${id}.`)
+      }
+      log(` [${colorize(quiz.id, 'blue')}]:  ${quiz.question} ${colorize('=>', 'magenta')} ${quiz.answer}`);
+    })
+    .catch(error => {
+      errorlog(error.message);
+    })
+    .then(()=>{
+      rl.prompt();
+    });
 };
 
 
@@ -77,9 +102,14 @@ exports.addCmd = rl => {
 
         rl.question(colorize(' Introduzca la respuesta ', 'red'), answer => {
 
-            model.add(question, answer);
-            log(` ${colorize('Se ha añadido', 'magenta')}: ${question} ${colorize('=>', 'magenta')} ${answer}`);
-            rl.prompt();
+            let newQuiz = models.quiz.build({question: question, answer: answer});
+            newQuiz.save()
+            .then(quiz => {
+              log(` ${colorize('Se ha añadido', 'magenta')}: ${quiz.question} ${colorize('=>', 'magenta')} ${quiz.answer}`);
+            })
+            .then(()=>{
+              rl.prompt();
+            });
         });
     });
 };
@@ -228,3 +258,14 @@ exports.creditsCmd = rl => {
 exports.quitCmd = rl => {
     rl.close();
 };
+
+
+/*.catch(Sequelize.ValidationError, function(error){
+  log("Errores de validación:", error);
+  for(var i in error.errors){
+    log('Error en el campo:',error.errors[i].value);
+  };
+})
+.catch(function(error){
+  log("Error: ",error);
+});*/
