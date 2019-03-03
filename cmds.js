@@ -109,7 +109,7 @@ exports.showCmd = (rl, id) => {
  */
 exports.addCmd = rl => {
   makeQuestion(rl,'Introduzca una pregunta: ')
-  .then(q => {
+  .then(q => {npm
     return makeQuestion(rl,'Introduzca la respuesta: ')
     .then(a => {
       return {question: q, answer: a};
@@ -237,33 +237,44 @@ exports.testCmd = (rl, id) => {
  */
 exports.playCmd = rl => {
     log('Jugar.', 'red');
-    let gameQuestions = models.quiz.findAll();
     let score = 0;
+    let i = 0;
     let id = 0;
+    let ids = new Array();
     const newQuestion = () => {
-      id = 1;
-      makeQuestion(rl,gameQuestions[questionId].question)
-      .then(a => {
-        if(answer == gameQuestions[questionId].answer){
-          score++;
-          log('Correcta. Aciertos: ' + score);
-          gameQuestions.splice(questionId, 1);
-          if(gameQuestions.length < 1){
-            biglog('WINNER','magenta');
-            rl.prompt();
+      id = Math.floor(Math.random()*(ids.length));
+      models.quiz.findByPk(ids[id])
+      .then(quiz => {
+        makeQuestion(rl,quiz.question)
+        .then(a => {
+          if(a == quiz.answer){
+            score++;
+            log('Correcta. Aciertos: ' + score);
+            ids.splice(id, 1);
+            if(ids.length < 1){
+              biglog('WINNER','magenta');
+              rl.prompt();
+            }else{
+              newQuestion();
+            }
           }else{
-            newQuestion();
+            log('Incorrecta.','magenta');
+            biglog('FIN','red');
+            log('Has conseguido: '+ score + ' puntos.','magenta');
+            rl.prompt();
           }
-        }else{
-          log('Incorrecta.','magenta');
-          biglog('FIN','red');
-          log('Has conseguido: '+ score + ' puntos.','magenta');
-          rl.prompt();
-        }
+        });
       });
     }
-    newQuestion();
-    //Math.floor(Math.random()*(gameQuestions.length)
+
+    models.quiz.findAll()
+    .each(quiz => {
+      ids[i] = quiz.id;
+      i++;
+    })
+    .then(()=>{
+      newQuestion();
+    });
 }
 /**
  * Muestra los nombres de los autores de la práctica.
