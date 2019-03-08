@@ -215,7 +215,7 @@ exports.testCmd = (rl, id) => {
     return makeQuestion(rl,quiz.question)
     .then(a => {
       if(a == quiz.answer){
-        biglog('Correcta','green');
+        biglog('\bCorrecta','green');
       }else{
         biglog('Incorrecta','red');
       }
